@@ -1,4 +1,5 @@
 import pygame
+import random
 
 IMAGES_PATH: str = 'images/'
 screen_width: int = 601
@@ -43,6 +44,24 @@ class Wizard:
         else:
             self.x = screen_width - self.width
 
+class Diamond:
+    x: int = 0
+    y: int = 0
+    speed: int = 0
+    image: None
+
+    def __init__(self, image):
+        self.image = image
+        w = self.image. get_width()
+        self.x = random.randint(0, screen_width - w)
+        self.speed = random.randint(2, 5)
+
+    def show(self):
+        screen.blit(self.image, (self.x, self.y))
+
+    def fall(self):
+        self.y += self.speed
+
 
 class Game:
     run: bool = True
@@ -51,11 +70,16 @@ class Game:
     background = None
     player = Wizard
     player_move: str = ''
+    diamond: Diamond
+
 
     def __init__(self):
         pygame.display.set_caption('Wizard')
         self.background_add(IMAGES_PATH + 'background.png')
         self.player = Wizard()
+
+        i = pygame.image.load(IMAGES_PATH + '8.png')
+        self.diamond = Diamond(i)
 
     def background_add(self, image: str):
         self.background = pygame.image.load(image)
@@ -81,6 +105,8 @@ class Game:
                 self.background_draw()
                 self.player.move(self.player_move)
                 self.player.show()
+                self.diamond.show()
+                self.diamond.fall()
 
 
                 pygame.display.update()
