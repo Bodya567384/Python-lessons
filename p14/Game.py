@@ -96,6 +96,7 @@ class Diamond:
     def fall(self):
         self.y += self.speed
 
+
 class Diamonds:
     diamonds_images: list = []
     diamonds_list: list = []
