@@ -4,9 +4,11 @@ import pygame
 import random
 import time
 
-SCREEN_WIDTH = 780
-SCREEN_HEIGHT = 780
-IMAGES_PATH = 'images/'
+SCREEN_WIDTH = 260 * 3  # 780
+SCREEN_HEIGHT = 260 * 2  # 520
+IMAGES_PATH_BG = 'images/'
+IMAGES_PATH_MENU = 'images/menu/'
+FONT_PATH = 'fonts'
 FPS: int = 60
 
 pygame.init()
@@ -14,14 +16,10 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
 class Player:
-    player_image = pygame.image.load(IMAGES_PATH + 'Ship1.png')
-
-class Background:
     pass
 
-class Game:
-    background_image = None
-    game_run: bool = False
+class Background:
+    image = None
 
     def __init__(self):
         self.bg_x: int = 0
@@ -30,28 +28,22 @@ class Game:
         self.bg_y_position = self.bg_y
         self.bg_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT * 2))
 
-        self.interval = time.time()
-        self.dt = 1
+        self.add()
 
-    def delta_time(self):
-        clock.tick(FPS)
-        self.dt = time.time() - self.interval
-        self.interval = time.time()
-
-    def add_background(self):
+    def add(self):
         i = random.randint(1, 2)
-        self.background_image = pygame.image.load(IMAGES_PATH + 'bg01.png')
+        self.image = pygame.image.load(IMAGES_PATH_BG + 'bg01.png')
 
-        nx = int(SCREEN_WIDTH / self.background_image.get_width())
-        ny = int(SCREEN_HEIGHT / self.background_image.get_height())
-        w = self.background_image.get_width()
-        h = self.background_image.get_height()
+        nx = int(SCREEN_WIDTH / self.image.get_width())
+        ny = int(SCREEN_HEIGHT / self.image.get_height())
+        w = self.image.get_width()
+        h = self.image.get_height()
 
         for x in range(nx):
             for y in range(ny * 2):
-                self.bg_surface.blit(self.background_image, (w * x, h * y))
+                self.bg_surface.blit(self.image, (w * x, h * y))
 
-    def draw_background(self):
+    def draw(self):
         self.bg_y_position += self.bg_y_speed
         self.bg_y = int(self.bg_y_position)
 
@@ -61,18 +53,68 @@ class Game:
 
         screen.blit(self.bg_surface, (self.bg_x, self.bg_y))
 
-    def menu(self):
-        im = pygame.image.load(IMAGES_PATH + 'bg_menu.jpg')
-        screen.blit(im, (0, 0))
+class Menu:
+    def __init__(self):
+        bg_img = pygame.image.load(IMAGES_PATH_MENU + 'bg-03.jpg')
+        self.bg_img = pygame.transform.scale(bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-        font = pygame.font.SysFont('Calibri', 40)
-        mes = 'S'
-        text = font.render(mes, True, 'White')
-        screen.blit(text, (300, 120))
+        box_img = pygame.image.load(IMAGES_PATH_MENU + 'Window.png')
+        self.box_img = pygame.transform.scale(box_img, (300, 300))
 
+    def start_button(self):
+        color = (0, 0, 0)
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        if self.start_pos():
+            color = (255, 255, 255)
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+
+        font = pygame.font.SysFont(FONT_PATH + 'Oswald-VariableFont_wght.ttf', 50)
+        text = font.render('START', True, color)
+        screen.blit(text, (335, 120))
+
+    def draw(self):
+        screen.blit(self.bg_img, (0, 0))
+        screen.blit(self.box_img, (int(SCREEN_WIDTH / 2 - self.box_img.get_width() / 2), 20))
+        self.start_button()
+
+    def start_pos(self):
+        pos = pygame.mouse.get_pos()
+        print(pos)
+
+        if ((pos[0] > 320 and pos[0] < 400) and (pos[1] > 120 and pos[1] < 140)):
+            return True
+
+        return False
+    def click_mouse(self):
+        btn = pygame.mouse.get_pressed() # (False, False, False)
+
+        if btn[0] and self.start_pos():
+            return 'run'
+
+        return None
+
+
+class Game:
+    game_run: bool = False
+
+    def __init__(self):
+        pygame.display.set_caption('StarFly')
+        self.interval = time.time()
+        self.dt = 1
+        self.menu = Menu()
+        self.bg = Background()
+        self.player = Player()
+
+
+    def delta_time(self):
+        clock.tick(FPS)
+        self.dt = time.time() - self.interval
+        self.interval = time.time()
 
     def init(self):
-        while True:
+        self.game_run = True
+
+        while self:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -80,13 +122,15 @@ class Game:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_s:
                         self.run()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.menu.click_mouse() == 'run':
+                        self.run()
 
-            self.menu()
+            self.menu.draw()
             pygame.display.update()
 
     def run(self):
         self.game_run = True
-        self.add_background()
 
         while self.game_run:
             for event in pygame.event.get():
@@ -97,7 +141,8 @@ class Game:
                     if event.key == pygame.K_q:
                         self.game_run = False
 
-            self.draw_background()
+            self.bg.draw()
+            # TODO: ігровий процес
             pygame.display.update()
 
 
