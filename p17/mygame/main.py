@@ -1,19 +1,21 @@
-import sys
 import pygame
 import random
 import time
+import sys
 
-SCREEN_WIDTH = 260 * 3  # 780
-SCREEN_HEIGHT = 260 * 2  # 520
-IMAGES_PATH_BG = 'images/'
-IMAGES_PATH_MENU = 'images/menu/'
-IMAGES_PATH_SHIPS = 'images/Ships/'
-FONT_PATH = 'fonts'
-FPS: int = 60
+IMAGES_PATH = 'images/'
+IMAGES_MENU_PATH = 'images/menu/'
+IMAGES_BG_PATH = 'images/background/'
+FONTS_PATH = 'fonts/'
+
+SCREEN_WIDTH = 256 * 3
+SCREEN_HEIGHT = 256 * 2
+FPS = 60
 
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
+
 
 class Bullet:
     bullet = None
@@ -30,6 +32,7 @@ class Bullet:
 
     def draw(self):
         screen.blit(self.bullet, (self.x, self.y))
+
 
 class Bullets:
     bullet_list: list = []
@@ -52,12 +55,13 @@ class Player:
 
     def __init__(self):
         n = random.randint(0, 9)
-        self.image = pygame.image.load(IMAGES_PATH_SHIPS + f'ship_000{n}.png')
+        self.image = pygame.image.load(IMAGES_PATH + f'ship_000{n}.png')
         self.x = int(SCREEN_WIDTH / 2)
         self.y = SCREEN_HEIGHT - (self.image.get_height() + 10)
-        self.speed = 1
+        self.speed = 5
 
         self.bullets = Bullets()
+
     def draw(self):
         screen.blit(self.image, (self.x, self.y))
 
@@ -85,41 +89,90 @@ class Player:
     def shoot(self):
         self.bullets.add(self.x, self.y)
 
+
 class Background:
-    image = None
+    bg_image = None
     bg_surface = None
 
     def __init__(self):
-        self.bg_x: int = 0
-        self.bg_y: int = -SCREEN_HEIGHT
-        self.bg_y_speed: float = 0.8
-        self.bg_y_position = self.bg_y
+        self.x = 0
+        self.y = -SCREEN_HEIGHT
+        self.speed = 1
         self.bg_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT * 2))
 
-        self.add()
+        self.add_background()
 
-    def add(self):
-        i = random.randint(1, 2)
-        self.image = pygame.image.load(IMAGES_PATH_BG + 'bg01.png')
+    def add_background(self):
+        self.bg_image = pygame.image.load(IMAGES_PATH + 'ground_tile_02.png')
+        nx = int(SCREEN_WIDTH / self.bg_image.get_width())
+        ny = int(SCREEN_HEIGHT / self.bg_image.get_height())
+        w = self.bg_image.get_width()
+        h = self.bg_image.get_height()
 
-        nx = int(SCREEN_WIDTH / self.image.get_width())
-        ny = int(SCREEN_HEIGHT / self.image.get_height())
-        w = self.image.get_width()
-        h = self.image.get_height()
-
-        for x in range(nx):
-            for y in range(ny * 2):
-                self.bg_surface.blit(self.image, (w * x, h * y))
+        # 1
+        for y in range(ny * 2):
+            for x in range(nx):
+                self.bg_surface.blit(self.bg_image, (w * x, h * y))
+        # 2
+        # bg_image2 = self.bg_image.copy()
+        # bg_image2 = pygame.transform.flip(bg_image2, 0, 180)
+        # self.bg_surface.blit(self.bg_image, (0, 0))
+        # self.bg_surface.blit(self.bg_image2, (0, 0))
 
     def draw_background(self):
-        self.bg_y_position += self.bg_y_speed
-        self.bg_y = int(self.bg_y_position)
+        self.y += self.speed
 
-        if self.bg_y >= 0:
-            self.bg_y = -SCREEN_HEIGHT
-            self.bg_y_position = self.bg_y
+        if self.y >= 0:
+            self.y = -SCREEN_HEIGHT
 
-        screen.blit(self.bg_surface, (self.bg_x, self.bg_y))
+        screen.blit(self.bg_surface, (self.x, self.y))
+
+
+class Menu:
+    def __init__(self):
+        bg_img = pygame.image.load(IMAGES_MENU_PATH + 'bg-01.jpg')
+        self.bg_img = pygame.transform.scale(bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+        box_img = pygame.image.load(IMAGES_MENU_PATH + 'menu-b-01.png')
+        self.box_img = pygame.transform.scale(box_img, (300, 300))
+
+    def start_btn(self):
+        color = (0, 0, 0)
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
+        if self.start_pos():
+            color = (255, 250, 250)
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+
+        font = pygame.font.SysFont(FONTS_PATH + 'LondrinaSolid-Black.ttf', 60)
+        text = font.render('START', True, color)
+        screen.blit(text, (320, 100))  # 455 135
+
+        font = pygame.font.SysFont('Arial', 14)
+        text = font.render('or press key - s', True, (0, 0, 0))
+        screen.blit(text, (330, 140))
+
+    def draw(self):
+        screen.blit(self.bg_img, (0, 0))
+        screen.blit(self.box_img, (int(SCREEN_WIDTH / 2 - self.box_img.get_width() / 2), 20))
+        self.start_btn()
+
+    def start_pos(self):
+        pos = pygame.mouse.get_pos()  # (x, y)
+
+        if (pos[0] > 320 and pos[0] < 455 and pos[1] > 100 and pos[1] < 135):
+            return True
+
+        return False
+
+    def mouse_click(self):
+        b = pygame.mouse.get_pressed()  # (False, False, False)
+
+        if self.start_pos() and b[0]:
+            return 'run'
+
+        return None
+
 
 class Enemy:
     x: int = 0
@@ -127,44 +180,18 @@ class Enemy:
     speed: int = 0
     image = None
 
-class Menu:
-    def __init__(self):
-        bg_img = pygame.image.load(IMAGES_PATH_MENU + 'bg-03.jpg')
-        self.bg_img = pygame.transform.scale(bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    def add(self):
+        pass
 
-        box_img = pygame.image.load(IMAGES_PATH_MENU + 'Window.png')
-        self.box_img = pygame.transform.scale(box_img, (300, 300))
+    def move(self):
+        pass
 
-    def start_button(self):
-        color = (0, 0, 0)
-        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-        if self.start_pos():
-            color = (255, 255, 255)
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+    def fire(self):
+        pass
 
-        font = pygame.font.SysFont(FONT_PATH + 'Oswald-VariableFont_wght.ttf', 50)
-        text = font.render('START', True, color)
-        screen.blit(text, (335, 120))
 
-    def draw(self):
-        screen.blit(self.bg_img, (0, 0))
-        screen.blit(self.box_img, (int(SCREEN_WIDTH / 2 - self.box_img.get_width() / 2), 20))
-        self.start_button()
-
-    def start_pos(self):
-        pos = pygame.mouse.get_pos()
-
-        if ((pos[0] > 320 and pos[0] < 455) and (pos[1] > 100 and pos[1] < 135)):
-            return True
-
-        return False
-    def click_mouse(self):
-        btn = pygame.mouse.get_pressed()   # (False, False, False)
-
-        if btn[0] and self.start_pos():
-            return 'run'
-
-        return None
+class Enemies:
+    pass
 
 
 class Game:
@@ -172,23 +199,22 @@ class Game:
     game_run: bool = False
 
     def __init__(self):
-        pygame.display.set_caption('StarFly')
-        self.interval = time.time()
-        self.dt = 1
-        self.menu = Menu()
-        self.bg = Background()
         self.player = Player()
+        self.bg_game = Background()
+        self.menu = Menu()
 
+        self.dt = 1
+        self.interval = time.time()
 
     def delta_time(self):
         clock.tick(FPS)
         self.dt = time.time() - self.interval
         self.interval = time.time()
 
-    def init(self):
-        self.game_run = True
+        self.player.dt = self.dt
 
-        while self:
+    def init(self):
+        while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -197,7 +223,7 @@ class Game:
                     if event.key == pygame.K_s:
                         self.run()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if self.menu.click_mouse() == 'run':
+                    if self.menu.mouse_click() == 'run':
                         self.run()
 
             self.menu.draw()
@@ -207,6 +233,8 @@ class Game:
         self.game_run = True
 
         while self.game_run:
+            self.delta_time()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -218,22 +246,24 @@ class Game:
                             print(self.player.moving)
                     elif event.key == pygame.K_SPACE:
                         self.player.shoot()
-                    elif event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_q:
-                            self.game_run = False
-                            break
+                    elif event.key == pygame.K_q:
+                        self.game_run = False
+                        break
                 elif event.type == pygame.KEYUP:
                     if event.key in self.player.moving:
                         self.player.moving.remove(event.key)
-
+            # ---
             if self.game_run:
-                self.bg.draw_background()
+                self.bg_game.draw_background()
                 self.player.move()
                 self.player.draw()
 
                 pygame.display.update()
 
 
+# запуск програми
 if __name__ == '__main__':
     game = Game()
     game.init()
+
+
