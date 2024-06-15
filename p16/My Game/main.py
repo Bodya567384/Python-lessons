@@ -9,6 +9,7 @@ SCREEN_HEIGHT = 260 * 2  # 520
 IMAGES_PATH_BG = 'images/'
 IMAGES_PATH_MENU = 'images/menu/'
 IMAGES_PATH_SHIPS = 'images/Ships/'
+IMAGES_PATH_ENEMIES = 'images/Enemies/'
 FONT_PATH = 'fonts'
 FPS: int = 60
 
@@ -22,15 +23,17 @@ class Bullet:
     def __init__(self, x: int, y: int):
         self.bullet = pygame.Surface((3, 5))
         self.bullet.fill((0, 0, 50))
-        self.x = x
-        self.y = y
-        self.speed = 10
+        self.rect = self.bullet.get_rect()
+
+        self.rect.x = x
+        self.rect.y = y
+        self.speed = 12
 
     def move(self):
-        self.y -= self.speed
+        self.rect.y -= self.speed
 
     def draw(self):
-        screen.blit(self.bullet, (self.x, self.y))
+        screen.blit(self.bullet, self.rect)
 
 class Bullets:
     bullet_list: list = []
@@ -41,7 +44,7 @@ class Bullets:
     def move(self):
         for b in self.bullet_list:
             b.move()
-            if b.y < 0:
+            if b.rect.y < 0:
                 self.bullet_list.remove(b)
             b.draw()
 
@@ -85,6 +88,29 @@ class Player:
 
     def shoot(self):
         self.bullets.add(self.x, self.y)
+
+class AnimationExplosion:
+    def __init__(self, x=0, y=0):
+        self.index = 0
+        self.frames = []
+        img = pygame.image.load(IMAGES_PATH_BG + 'explosion.png')
+        for i in range(-10, 10):
+            k = 5 * (10 - abs(i) + 1)
+            im = pygame.transform.scale(img, (k, k))
+            self.frames.append(im)
+
+        self.x = x
+        self.y = y
+        self.end_animation = False
+
+    def animation(self):
+        self.index += 1
+        if self.index >= len(self.frames):
+            self.end_animation = True
+            self.index = 0
+
+        screen.blit(self.frames[self.index], (self.x, self.y))
+
 
 class Background:
     image = None
@@ -209,6 +235,7 @@ class Game:
         self.enemy_event = pygame.event.custom_type()
         pygame.time.set_timer(self.enemy_event, random.randint(1000, 3000))
 
+        self.collisions_explosion = []
 
     def delta_time(self):
         clock.tick(FPS)
@@ -216,6 +243,18 @@ class Game:
         self.interval = time.time()
 
         self.player.dt = self.dt
+
+    def collisions(self):
+        for b in self.player.bullets.bullet_list:
+            for e in enemies_group:
+                if pygame.sprite.collide_rect(b, e):
+                    self.collisions_explosion.append(AnimationExplosion(e.rect.x, e.rect.y))
+                    self.player.bullets.bullet_list.remove(b)
+                    e.kill()
+        for e in self.collisions_explosion:
+            e.animation()
+            if e.end_animation:
+                self.collisions_explosion.remove(e)
 
     async def init(self):
         while True:
@@ -255,7 +294,7 @@ class Game:
                 elif event.key == pygame.K_SPACE:
                     self.player.shoot()
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_q:
+                    if event.key == pygame.K_ESCAPE:
                         self.game_run = False
                         break
             elif event.type == pygame.KEYUP:
@@ -268,7 +307,9 @@ class Game:
             self.bg.draw_background()
             self.player.move()
             self.player.draw()
+
             enemies_group.update(self.dt)
+            self.collisions()
             enemies_group.draw(screen)
 
 
